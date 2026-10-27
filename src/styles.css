@@ -1,0 +1,402 @@
+:root {
+  font-family: Arial, sans-serif;
+  color: #26342e;
+  background: #f3f5f4;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+main {
+  width: min(1100px, 100%);
+  margin: auto;
+  padding: 28px 20px;
+}
+h1 {
+  font-size: 26px;
+  margin: 0 0 18px;
+}
+h2 {
+  font-size: 20px;
+  margin: 0 0 16px;
+}
+h3 {
+  font-size: 16px;
+}
+p {
+  line-height: 1.6;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button {
+  background: #23794e;
+  color: white;
+  border: 1px solid #23794e;
+  border-radius: 4px;
+  padding: 9px 14px;
+  cursor: pointer;
+}
+button:hover {
+  background: #195d3b;
+}
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+button:focus-visible,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid #246fa3;
+  outline-offset: 2px;
+}
+button.secondary,
+button.back,
+button.icon-button {
+  background: white;
+  color: #246fa3;
+  border: 1px solid #b9c8d0;
+}
+button.secondary:hover,
+button.back:hover,
+button.icon-button:hover {
+  background: #edf4f9;
+}
+label {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 18px;
+}
+input,
+select,
+textarea {
+  width: 100%;
+  display: block;
+  padding: 10px;
+  margin-top: 7px;
+  border: 1px solid #b9c5bf;
+  border-radius: 4px;
+  background: white;
+  color: #26342e;
+}
+textarea {
+  resize: vertical;
+}
+.app-header {
+  background: #23794e;
+  color: white;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.app-header > div {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.page-heading h1 {
+  margin: 0;
+}
+.login {
+  max-width: 400px;
+  margin: 70px auto;
+  padding: 28px;
+  border: 1px solid #d3dcd6;
+  background: white;
+  border-top: 5px solid #23794e;
+  border-radius: 4px;
+}
+.login h1 {
+  color: #23794e;
+}
+.login p {
+  color: #607067;
+}
+.login button {
+  width: 100%;
+}
+.filters {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.filters label {
+  margin: 0;
+  flex: 1;
+}
+.filters label:first-child {
+  flex: 2;
+}
+.filters button {
+  min-height: 41px;
+}
+.table-wrap {
+  overflow-x: auto;
+  background: white;
+  border: 1px solid #d3dcd6;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
+}
+th,
+td {
+  border-bottom: 1px solid #e0e5e2;
+  padding: 13px 12px;
+}
+th {
+  background: #eaf0ec;
+}
+td:nth-child(2) {
+  min-width: 220px;
+}
+td:last-child {
+  white-space: nowrap;
+}
+.badge {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.open {
+  color: #8d480c;
+  background: #ffead5;
+}
+.in_progress {
+  color: #175986;
+  background: #e1effa;
+}
+.closed {
+  color: #1d623d;
+  background: #dff0e4;
+}
+.pagination {
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+.pagination > div,
+footer {
+  display: flex;
+  gap: 10px;
+}
+.notice {
+  background: #fff0e2;
+  border: 1px solid #e4b383;
+  padding: 12px;
+  margin-bottom: 18px;
+  color: #884811;
+}
+.panel {
+  background: white;
+  border: 1px solid #d3dcd6;
+  border-radius: 4px;
+  padding: 22px;
+}
+.form-panel {
+  max-width: 720px;
+  margin: auto;
+}
+.form-panel h1 {
+  margin-bottom: 24px;
+}
+footer {
+  justify-content: flex-end;
+  margin-top: 22px;
+}
+.back {
+  margin-bottom: 22px;
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 20px;
+}
+.section-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.section-title h2 {
+  margin: 0;
+  margin-right: auto;
+}
+.muted,
+.eyebrow {
+  font-size: 13px;
+  color: #63746a;
+}
+.eyebrow {
+  margin-bottom: 8px;
+}
+.description {
+  padding-bottom: 20px;
+  border-bottom: 1px solid #d3dcd6;
+}
+.messages {
+  padding: 20px 0;
+}
+.message {
+  margin-bottom: 18px;
+  padding: 14px;
+  border: 1px solid #dce3de;
+  border-radius: 4px;
+}
+.message.own {
+  background: #f0f7f2;
+}
+.message-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+.message-meta time {
+  color: #63746a;
+}
+.markdown {
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.markdown p {
+  white-space: pre-wrap;
+}
+.markdown h1 {
+  font-size: 21px;
+}
+.markdown h2 {
+  font-size: 18px;
+  margin-top: 18px;
+}
+.markdown pre {
+  overflow: auto;
+  background: #f1f3f2;
+  padding: 10px;
+}
+.markdown a {
+  color: #246fa3;
+}
+.composer {
+  border-top: 1px solid #d3dcd6;
+  padding-top: 20px;
+}
+.composer > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+.ticket-info {
+  height: fit-content;
+}
+.ticket-info label {
+  margin: 20px 0 8px;
+  color: #63746a;
+}
+.ticket-info strong,
+.ticket-info > span,
+.ticket-info small {
+  display: block;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.ticket-info small {
+  margin-top: 6px;
+}
+.ticket-info .badge {
+  display: inline-block;
+}
+.ticket-info hr {
+  border: 0;
+  border-top: 1px solid #d3dcd6;
+  margin-top: 22px;
+}
+.empty {
+  padding: 20px 0;
+  color: #63746a;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+@media (max-width: 700px) {
+  .app-header {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 16px;
+  }
+  .app-header > div {
+    width: 100%;
+    justify-content: space-between;
+  }
+  main {
+    padding: 24px 14px;
+  }
+  .login {
+    margin: 40px auto;
+    max-width: calc(100% - 28px);
+    padding: 24px;
+  }
+  .filters {
+    flex-wrap: wrap;
+  }
+  .filters label:first-child {
+    flex: 1 0 100%;
+  }
+  .page-heading {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  h1 {
+    font-size: 23px;
+    overflow-wrap: anywhere;
+  }
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .ticket-info {
+    grid-row: 1;
+  }
+  .panel {
+    padding: 16px;
+  }
+  .composer > div {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .pagination {
+    flex-wrap: wrap;
+  }
+}
