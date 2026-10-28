@@ -50,7 +50,6 @@ export const json = (method, data) => ({
   method,
   body: JSON.stringify(data),
 });
-// O formato dos filtros segue a documentação da API.
 export function ticketQuery(search, status, offset) {
   const and = [];
   if (status) and.push({ column: 'status', op: 'eq', value: status });

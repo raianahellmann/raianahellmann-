@@ -58,7 +58,6 @@ export default function App() {
         if (active) setError(error.message);
       }
     }
-    // A API retorna os IDs dos autores. Esta consulta permite mostrar seus nomes.
     async function loadUsers() {
       const result = [];
       let offset = 0;
@@ -71,7 +70,6 @@ export default function App() {
         }
         if (active) setUsers(result);
       } catch {
-        // Se a conta não puder listar usuários, mostramos os IDs recebidos.
       }
     }
     loadAccount();
@@ -101,7 +99,6 @@ export default function App() {
       }
     }
     loadTickets();
-    // Evita que uma resposta antiga substitua uma busca mais recente.
     return () => {
       active = false;
     };
