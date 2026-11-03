@@ -6,8 +6,6 @@ Permite fazer login, consultar e buscar chamados, abrir e editar solicitações,
 
 ## Como executar
 
-É necessário ter Node.js 22.12 ou superior e npm instalados.
-
 No PowerShell, dentro da pasta do projeto:
 
 ```powershell
