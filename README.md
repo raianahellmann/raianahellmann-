@@ -1,12 +1,12 @@
 # Pontosat — Sistema de chamados
 
-Feito com React, JavaScript e CSS.
+Frontend feito com React, JavaScript e CSS e integrado à API fornecida.
 
-Tem login, consulta, busca, filtro por status, criação e edição de chamados e conversa de cada chamado.
+Permite fazer login, consultar e buscar chamados, abrir e editar solicitações, alterar o status e conversar em cada chamado. Também permite editar e excluir mensagens e excluir chamados.
 
-## Como executar:
+## Como executar
 
-Precisa ter Node.js 22.12 ou mais recente instalado.
+É necessário ter Node.js 22.12 ou superior e npm instalados.
 
 No PowerShell, dentro da pasta do projeto:
 
@@ -16,13 +16,23 @@ Copy-Item .env.example .env
 npm.cmd run dev
 ```
 
-Abra o endereço que aparecer no terminal e use a conta fornecida pela empresa.
+Abra o endereço que aparecer no terminal e entre com a conta fornecida pela empresa.
 
-Para conferir o build e os testes:
+## Testes e build
 
 ```powershell
-npm.cmd run build
 npm.cmd test
+npm.cmd run build
 ```
 
-A aplicação usa a [API do desafio](http://api-segunda-fase.pontosat.net.br:29461/docs). O Vite encaminha as chamadas durante o desenvolvimento. Para hospedar em HTTPS, é necessário um proxy HTTPS para a API, que usa HTTP.
+Para visualizar o build localmente:
+
+```powershell
+npm.cmd run preview
+```
+
+## API
+
+[Documentação da API](http://api-segunda-fase.pontosat.net.br:29461/docs)
+
+O endereço da API está configurado no `.env.example`. Durante o desenvolvimento e o preview, o Vite vai encaminhar as requisições para esse servidor.

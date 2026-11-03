@@ -1,13 +1,14 @@
 {
-  "name": "pontosat-atendimento",
-  "private": true,
+  "name": "pontosat-chamados",
   "version": "1.0.0",
+  "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
-    "test": "vitest run"
+    "test": "vitest run",
+    "format": "prettier --write src vite.config.js index.html README.md"
   },
   "dependencies": {
     "react": "^19.2.0",
@@ -16,6 +17,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.0",
+    "prettier": "^3.9.10",
     "vite": "^7.2.0",
     "vitest": "^5.0.5"
   }

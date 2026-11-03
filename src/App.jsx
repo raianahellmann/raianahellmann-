@@ -1,298 +1,182 @@
-import { useEffect, useState } from 'react';
-import { auth, json, request, ticketQuery } from './api';
-import { labels, date } from './presentation';
-import { Badge, Notice } from './components/ui';
-import TicketForm from './components/TicketForm';
-import TicketDetail from './components/TicketDetail';
-
+import { useEffect, useState } from "react";
+import { allUsers, auth, first, request } from "./api";
+import { Notice } from "./components/ui";
+import Login from "./components/Login";
+import TicketList from "./components/TicketList";
+import TicketForm from "./components/TicketForm";
+import TicketDetail from "./components/TicketDetail";
 export default function App() {
-  const [loggedIn, setLoggedIn] = useState(Boolean(auth.get()));
-  const [user, setUser] = useState(null);
-  const [users, setUsers] = useState([]);
-  const [tickets, setTickets] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [search, setSearch] = useState('');
-  const [filters, setFilters] = useState({ search: '', status: '' });
-  const [status, setStatus] = useState('');
-  const [page, setPage] = useState(0);
-  const [selected, setSelected] = useState(null);
-  const [form, setForm] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [refresh, setRefresh] = useState(0);
-
-  function logout() {
-    auth.set('');
-    setLoggedIn(false);
-    setUser(null);
-    setUsers([]);
-    setTickets([]);
-    setSelected(null);
-    setForm(null);
-    setSearch('');
-    setStatus('');
-    setFilters({ search: '', status: '' });
-    setPage(0);
-    setTotal(0);
-    setError('');
+  const [logado, setLogado] = useState(Boolean(auth.get()));
+  const [usuarioLogado, setUsuarioLogado] = useState(null);
+  const [usuarios, setUsuarios] = useState([]);
+  const [tela, setTela] = useState("lista");
+  const [chamadoSelecionado, setChamadoSelecionado] = useState(null);
+  const [erro, setErro] = useState("");
+  const [mensagemSucesso, setMensagemSucesso] = useState("");
+  const [avisoSessao, setAvisoSessao] = useState("");
+  const [tentativaCarregamento, setTentativaCarregamento] = useState(0);
+  function sair() {
+    auth.set("");
+    setLogado(false);
+    setUsuarioLogado(null);
+    setUsuarios([]);
+    setTela("lista");
+    setChamadoSelecionado(null);
+    setErro("");
+    setMensagemSucesso("");
+    setAvisoSessao("");
   }
-
   useEffect(() => {
-    function expired() {
-      logout();
-      setError('Sua sessão expirou. Entre novamente.');
+    function sessaoExpirada() {
+      sair();
+      setAvisoSessao("Sua sessão expirou. Entre novamente.");
     }
-    window.addEventListener('session-expired', expired);
-    return () => window.removeEventListener('session-expired', expired);
+    window.addEventListener("session-expired", sessaoExpirada);
+    return () => window.removeEventListener("session-expired", sessaoExpirada);
   }, []);
-
   useEffect(() => {
-    if (!loggedIn) return;
-    let active = true;
-    async function loadAccount() {
-      try {
-        const response = await request('/me');
-        const account = Array.isArray(response.data) ? response.data[0] : response.data;
-        if (active) setUser(account);
-      } catch (error) {
-        if (active) setError(error.message);
-      }
+    if (!logado) {
+      return;
     }
-    async function loadUsers() {
-      const result = [];
-      let offset = 0;
+    const cancelamento = new AbortController();
+    async function carregarConta() {
+      setErro("");
       try {
-        while (true) {
-          const response = await request(`/users?limit=100&offset=${offset}`);
-          result.push(...(response.data || []));
-          if (result.length >= (response.meta?.total || 0) || !response.data?.length) break;
-          offset += 100;
+        const resposta = await request("/me", {
+          signal: cancelamento.signal,
+        });
+        setUsuarioLogado(first(resposta.data));
+      } catch (erro) {
+        if (!cancelamento.signal.aborted) {
+          setErro(erro.message);
         }
-        if (active) setUsers(result);
-      } catch {
       }
     }
-    loadAccount();
-    loadUsers();
-    return () => {
-      active = false;
-    };
-  }, [loggedIn]);
-
-  useEffect(() => {
-    if (!loggedIn) return;
-    let active = true;
-    async function loadTickets() {
-      setLoading(true);
-      setError('');
+    async function carregarUsuarios() {
       try {
-        const query = ticketQuery(filters.search, filters.status, page * 10);
-        const response = await request(`/tickets?${query}`);
-        if (active) {
-          setTickets(response.data || []);
-          setTotal(response.meta?.total || 0);
+        const listaUsuarios = await allUsers(cancelamento.signal);
+        setUsuarios(listaUsuarios);
+      } catch (erro) {
+        if (!cancelamento.signal.aborted) {
+          setErro(
+            "Não foi possível carregar os nomes dos usuários. " + erro.message,
+          );
         }
-      } catch (error) {
-        if (active) setError(error.message);
-      } finally {
-        if (active) setLoading(false);
       }
     }
-    loadTickets();
-    return () => {
-      active = false;
-    };
-  }, [loggedIn, filters, page, refresh]);
-
-  async function login(event) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    setLoading(true);
-    setError('');
-    try {
-      const response = await request(
-        '/login',
-        json('POST', {
-          email: data.get('email'),
-          password: data.get('password'),
-        }),
+    carregarConta();
+    carregarUsuarios();
+    return () => cancelamento.abort();
+  }, [logado, tentativaCarregamento]);
+  function abrirChamado(ticket) {
+    setChamadoSelecionado(ticket);
+    setMensagemSucesso("");
+    setTela("detalhes");
+  }
+  function novoChamado() {
+    setChamadoSelecionado(null);
+    setMensagemSucesso("");
+    setTela("novo");
+  }
+  function editarChamado() {
+    setMensagemSucesso("");
+    setTela("editar");
+  }
+  function voltarParaLista() {
+    setChamadoSelecionado(null);
+    setMensagemSucesso("");
+    setTela("lista");
+  }
+  function cancelarFormulario() {
+    if (chamadoSelecionado) {
+      setTela("detalhes");
+    } else {
+      setTela("lista");
+    }
+  }
+  function salvarChamado(ticket) {
+    setChamadoSelecionado(ticket || null);
+    setMensagemSucesso("Chamado salvo com sucesso.");
+    if (ticket) {
+      setTela("detalhes");
+    } else {
+      setTela("lista");
+    }
+  }
+  function chamadoExcluido() {
+    setChamadoSelecionado(null);
+    setTela("lista");
+    setMensagemSucesso("Chamado excluído.");
+  }
+  function loginConcluido() {
+    setAvisoSessao("");
+    setLogado(true);
+  }
+  if (!logado) {
+    return <Login sessionMessage={avisoSessao} onLogin={loginConcluido} />;
+  }
+  let conteudo;
+  if (tela === "novo" || tela === "editar") {
+    conteudo = (
+      <TicketForm
+        ticket={chamadoSelecionado}
+        onCancel={cancelarFormulario}
+        onSave={salvarChamado}
+      />
+    );
+  } else if (tela === "detalhes") {
+    if (usuarioLogado) {
+      conteudo = (
+        <TicketDetail
+          ticket={chamadoSelecionado}
+          me={usuarioLogado}
+          users={usuarios}
+          onBack={voltarParaLista}
+          onEdit={editarChamado}
+          onDelete={chamadoExcluido}
+        />
       );
-      auth.set(response.data.access_token);
-      setLoggedIn(true);
-    } catch (error) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
+    } else {
+      conteudo = <p role="status">Carregando usuário para abrir o chamado…</p>;
     }
-  }
-
-  function filterTickets(event) {
-    event.preventDefault();
-    setPage(0);
-    setFilters({ search: search.trim(), status });
-  }
-
-  function saved(ticket) {
-    setForm(null);
-    setSelected(ticket || null);
-    setRefresh(refresh + 1);
-  }
-
-  if (!loggedIn) {
-    return (
-      <main className="login">
-        <h1>Pontosat</h1>
-        <h2>Sistema de chamados</h2>
-        <p>Entre com seu e-mail e senha.</p>
-        {error && <Notice>{error}</Notice>}
-        <form onSubmit={login}>
-          <label>
-            E-mail
-            <input type="email" name="email" autoComplete="username" required />
-          </label>
-          <label>
-            Senha
-            <input type="password" name="password" autoComplete="current-password" required />
-          </label>
-          <button disabled={loading}>{loading ? 'Entrando…' : 'Entrar'}</button>
-        </form>
-      </main>
+  } else {
+    conteudo = (
+      <TicketList users={usuarios} onNew={novoChamado} onOpen={abrirChamado} />
     );
   }
-
   return (
     <>
       <header className="app-header">
-        <strong>Pontosat — Sistema de chamados</strong>
-        <div>
-          <span>{user?.name || 'Carregando usuário…'}</span>
-          <button className="secondary" onClick={logout}>
-            Sair
-          </button>
+        <div className="header-inner">
+          <div className="brand">
+            pontosat<span>ATENDIMENTO</span>
+          </div>
+          <div className="account">
+            <span>{usuarioLogado?.name || "Carregando usuário…"}</span>
+            <button className="secondary" onClick={sair}>
+              Sair
+            </button>
+          </div>
         </div>
       </header>
-      <main>
-        {form ? (
-          <TicketForm
-            ticket={form === 'edit' ? selected : undefined}
-            close={() => setForm(null)}
-            saved={saved}
-          />
-        ) : selected && user ? (
-          <TicketDetail
-            ticket={selected}
-            me={user}
-            users={users}
-            back={() => setSelected(null)}
-            edit={() => setForm('edit')}
-          />
-        ) : (
-          <>
-            <div className="page-heading">
-              <h1>Chamados</h1>
-              <button onClick={() => setForm('new')}>Novo chamado</button>
-            </div>
-            <form className="filters" onSubmit={filterTickets}>
-              <label>
-                Buscar chamado
-                <input
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Título ou descrição"
-                />
-              </label>
-              <label>
-                Status
-                <select value={status} onChange={(event) => setStatus(event.target.value)}>
-                  <option value="">Todos</option>
-                  {Object.entries(labels).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button disabled={loading}>Buscar</button>
-            </form>
-            {error && (
-              <Notice>
-                {error}{' '}
-                <button className="secondary" onClick={() => setRefresh(refresh + 1)}>
-                  Tentar novamente
-                </button>
-              </Notice>
-            )}
-            {loading ? (
-              <p role="status">Carregando chamados…</p>
-            ) : (
-              !error && (
-                <>
-                  {tickets.length === 0 ? (
-                    <p className="panel">Nenhum chamado encontrado.</p>
-                  ) : (
-                    <div className="table-wrap">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Número</th>
-                            <th>Título</th>
-                            <th>Status</th>
-                            <th>Solicitante</th>
-                            <th>Atualizado em</th>
-                            <th>Ação</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {tickets.map((ticket) => (
-                            <tr key={ticket.id}>
-                              <td>#{ticket.id}</td>
-                              <td>{ticket.title}</td>
-                              <td>
-                                <Badge status={ticket.status} />
-                              </td>
-                              <td>
-                                {users.find((person) => person.id === ticket.id_user)?.name ||
-                                  `Usuário #${ticket.id_user}`}
-                              </td>
-                              <td>{date(ticket.date_updated)}</td>
-                              <td>
-                                <button className="secondary" onClick={() => setSelected(ticket)}>
-                                  Abrir<span className="sr-only"> chamado {ticket.id}</span>
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                  <div className="pagination">
-                    <span>
-                      {total} {total === 1 ? 'chamado' : 'chamados'} — Página {page + 1}
-                    </span>
-                    <div>
-                      <button
-                        className="secondary"
-                        disabled={page === 0}
-                        onClick={() => setPage(page - 1)}
-                      >
-                        Anterior
-                      </button>
-                      <button
-                        className="secondary"
-                        disabled={(page + 1) * 10 >= total}
-                        onClick={() => setPage(page + 1)}
-                      >
-                        Próxima
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )
-            )}
-          </>
+      <main className="container">
+        {erro && (
+          <Notice>
+            {erro}{" "}
+            <button
+              className="text-button"
+              onClick={() =>
+                setTentativaCarregamento(tentativaCarregamento + 1)
+              }
+            >
+              Tentar novamente
+            </button>
+          </Notice>
         )}
+        {mensagemSucesso && <Notice success>{mensagemSucesso}</Notice>}
+        {conteudo}
       </main>
+      <footer>Pontosat · Sistema de chamados</footer>
     </>
   );
 }

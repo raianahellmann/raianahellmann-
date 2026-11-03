@@ -1,81 +1,107 @@
-import { useState } from 'react';
-import { request, json } from '../api';
-import { labels } from '../presentation';
-import { Notice } from './ui';
-export default function TicketForm({ ticket, close, saved }) {
-  const [error, setError] = useState('');
-  const [busy, setBusy] = useState(false);
-  async function submit(e) {
-    e.preventDefault();
-    const data = new FormData(e.currentTarget);
-    const title = String(data.get('title')).trim(),
-      description = String(data.get('description')).trim();
-    if (!title || !description) {
-      setError('Preencha título e descrição.');
+import { useState } from "react";
+import { first, request } from "../api";
+import { Notice } from "./ui";
+export default function TicketForm({ ticket, onCancel, onSave }) {
+  const [titulo, setTitulo] = useState(ticket?.title || "");
+  const [descricao, setDescricao] = useState(ticket?.description || "");
+  const [status, setStatus] = useState(ticket?.status || "open");
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
+  async function enviarFormulario(evento) {
+    evento.preventDefault();
+    if (!titulo.trim() || !descricao.trim()) {
+      setErro("Preencha o título e a descrição.");
       return;
     }
-    setBusy(true);
-    setError('');
+    setSalvando(true);
+    setErro("");
     try {
-      const r = await request(
-        ticket ? `/tickets/${ticket.id}` : '/tickets',
-        json(ticket ? 'PUT' : 'POST', {
-          title,
-          description,
-          status: data.get('status'),
-        }),
-      );
-      saved(r.data);
-    } catch (e) {
-      setError(e.message);
+      let caminho = "/tickets";
+      let metodo = "POST";
+      if (ticket) {
+        caminho = "/tickets/" + ticket.id;
+        metodo = "PUT";
+      }
+      const dados = {
+        title: titulo.trim(),
+        description: descricao.trim(),
+        status: status,
+      };
+      const resposta = await request(caminho, {
+        method: metodo,
+        data: dados,
+      });
+      onSave(first(resposta.data));
+    } catch (erro) {
+      setErro(erro.message);
     } finally {
-      setBusy(false);
+      setSalvando(false);
     }
   }
+  let tituloPagina = "Novo chamado";
+  let textoBotao = "Abrir chamado";
+  if (ticket) {
+    tituloPagina = "Editar chamado #" + ticket.id;
+    textoBotao = "Salvar alterações";
+  }
+  if (salvando) {
+    textoBotao = "Salvando…";
+  }
   return (
-    <section className="panel form-panel">
-      <h1>{ticket ? 'Editar chamado' : 'Novo chamado'}</h1>
-
-      <form onSubmit={submit}>
-        {error && <Notice>{error}</Notice>}
+    <section className="form-page">
+      <button className="text-button" disabled={salvando} onClick={onCancel}>
+        ← Voltar
+      </button>
+      <h1>{tituloPagina}</h1>
+      <p className="muted">
+        Descreva a solicitação para facilitar o atendimento.
+      </p>
+      <form className="panel stack" onSubmit={enviarFormulario}>
+        {erro && <Notice>{erro}</Notice>}
         <label>
-          Título do chamado
+          Título <span className="muted">(obrigatório)</span>
           <input
-            name="title"
+            autoFocus
             maxLength={255}
             required
-            defaultValue={ticket?.title}
-            placeholder="Ex.: Preciso de ajuda para acessar o sistema"
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
+            disabled={salvando}
           />
         </label>
         <label>
-          Descrição
+          Descrição <span className="muted">(obrigatória)</span>
           <textarea
-            name="description"
+            rows={9}
             required
-            rows={5}
-            defaultValue={ticket?.description}
-            placeholder="Descreva a solicitação com o máximo de detalhes possível…"
+            value={descricao}
+            onChange={(e) => setDescricao(e.target.value)}
+            disabled={salvando}
           />
         </label>
         <label>
           Status
-          <select name="status" defaultValue={ticket?.status || 'open'}>
-            {Object.entries(labels).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
+          <select
+            value={status}
+            disabled={salvando}
+            onChange={(e) => setStatus(e.target.value)}
+          >
+            <option value="open">Aberto</option>
+            <option value="in_progress">Em atendimento</option>
+            <option value="closed">Finalizado</option>
           </select>
         </label>
-        <footer>
-          <button type="button" className="secondary" disabled={busy} onClick={close}>
+        <div className="actions">
+          <button disabled={salvando}>{textoBotao}</button>
+          <button
+            type="button"
+            className="secondary"
+            disabled={salvando}
+            onClick={onCancel}
+          >
             Cancelar
           </button>
-          <button className="primary" disabled={busy}>
-            {busy ? 'Salvando…' : ticket ? 'Salvar alterações' : 'Criar chamado'}
-          </button>
-        </footer>
+        </div>
       </form>
     </section>
   );

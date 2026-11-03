@@ -1,157 +1,339 @@
-import { useState, useEffect } from 'react';
-import Markdown from 'react-markdown';
-import { request, json } from '../api';
-import { date } from '../presentation';
-import { Badge, Notice } from './ui';
-export default function Detail({ ticket, me, users, back, edit }) {
-  const [messages, setMessages] = useState([]);
+import { useEffect, useState } from "react";
+import { request } from "../api";
+import { Badge, date, Markdown, Notice, Pager } from "./ui";
+export default function TicketDetail({
+  ticket,
+  me,
+  users,
+  onBack,
+  onEdit,
+  onDelete,
+}) {
+  const [mensagens, setMensagens] = useState([]);
+  const [pagina, setPagina] = useState(0);
   const [total, setTotal] = useState(0);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
-  const [text, setText] = useState('');
-  async function load(offset = 0) {
-    setLoading(true);
-    setError('');
-    try {
-      const r = await request(
-        `/ticket-interaction?id_ticket=${ticket.id}&limit=100&offset=${offset}`,
-      );
-      setMessages((old) => (offset ? [...old, ...r.data] : r.data || []));
-      setTotal(r.meta?.total || 0);
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState("");
+  const [mensagemSucesso, setMensagemSucesso] = useState("");
+  const [texto, setTexto] = useState("");
+  const [mensagemEmEdicao, setMensagemEmEdicao] = useState(null);
+  const [textoEdicao, setTextoEdicao] = useState("");
+  const [atualizacao, setAtualizacao] = useState(0);
+  function buscarNomeUsuario(id) {
+    const user = users.find((user) => user.id === id);
+    if (user) {
+      return user.name;
     }
+    if (id === me.id) {
+      return me.name;
+    }
+    return "Usuário #" + id;
   }
+  const podeEditar = me.role === "admin" || me.id === ticket.id_user;
   useEffect(() => {
-    load();
-  }, [ticket.id]);
-  async function send(e) {
-    e.preventDefault();
-    if (!text.trim()) return;
-    setSending(true);
-    setError('');
+    const cancelamento = new AbortController();
+    async function carregarMensagens() {
+      setCarregando(true);
+      setErro("");
+      try {
+        const resposta = await request(
+          "/ticket-interaction?id_ticket=" +
+            ticket.id +
+            "&limit=20&offset=" +
+            pagina * 20,
+          {
+            signal: cancelamento.signal,
+          },
+        );
+        const totalMensagens = resposta.meta?.total || 0;
+        if (pagina > 0 && pagina * 20 >= totalMensagens) {
+          setPagina(Math.max(0, Math.ceil(totalMensagens / 20) - 1));
+          return;
+        }
+        setMensagens(resposta.data || []);
+        setTotal(totalMensagens);
+      } catch (erro) {
+        if (!cancelamento.signal.aborted) {
+          setErro(erro.message);
+        }
+      } finally {
+        if (!cancelamento.signal.aborted) {
+          setCarregando(false);
+        }
+      }
+    }
+    carregarMensagens();
+    return () => cancelamento.abort();
+  }, [ticket.id, pagina, atualizacao]);
+  async function enviarMensagem(evento) {
+    evento.preventDefault();
+    if (!texto.trim()) {
+      setErro("Escreva uma mensagem antes de enviar.");
+      return;
+    }
+    setSalvando(true);
+    setErro("");
+    setMensagemSucesso("");
     try {
-      await request(
-        '/ticket-interaction',
-        json('POST', { text: text.trim(), id_ticket: ticket.id }),
-      );
-      setText('');
-      await load();
-    } catch (e) {
-      setError(e.message);
+      await request("/ticket-interaction", {
+        method: "POST",
+        data: {
+          text: texto.trim(),
+          id_ticket: ticket.id,
+        },
+      });
+      setTexto("");
+      setMensagemSucesso("Mensagem enviada.");
+      setPagina(Math.floor(total / 20));
+      setAtualizacao(atualizacao + 1);
+    } catch (erro) {
+      setErro(erro.message);
     } finally {
-      setSending(false);
+      setSalvando(false);
     }
   }
-  const owner = users.find((u) => u.id === ticket.id_user);
+  function editarMensagem(item) {
+    setMensagemEmEdicao(item.id);
+    setTextoEdicao(item.text);
+  }
+  async function salvarMensagem(evento) {
+    evento.preventDefault();
+    if (!textoEdicao.trim()) {
+      return;
+    }
+    setSalvando(true);
+    setErro("");
+    setMensagemSucesso("");
+    try {
+      await request("/ticket-interaction/" + mensagemEmEdicao, {
+        method: "PUT",
+        data: {
+          text: textoEdicao.trim(),
+        },
+      });
+      setMensagemEmEdicao(null);
+      setMensagemSucesso("Mensagem atualizada.");
+      setAtualizacao(atualizacao + 1);
+    } catch (erro) {
+      setErro(erro.message);
+    } finally {
+      setSalvando(false);
+    }
+  }
+  async function excluirMensagem(id) {
+    const confirmado = window.confirm(
+      "Excluir esta mensagem? Esta ação não pode ser desfeita.",
+    );
+    if (!confirmado) {
+      return;
+    }
+    setSalvando(true);
+    setErro("");
+    setMensagemSucesso("");
+    try {
+      await request("/ticket-interaction/" + id, {
+        method: "DELETE",
+      });
+      setMensagemSucesso("Mensagem excluída.");
+      setMensagemEmEdicao(null);
+      if (mensagens.length === 1 && pagina > 0) {
+        setPagina(pagina - 1);
+      }
+      setAtualizacao(atualizacao + 1);
+    } catch (erro) {
+      setErro(erro.message);
+    } finally {
+      setSalvando(false);
+    }
+  }
+  async function excluirChamado() {
+    const confirmado = window.confirm(
+      "Excluir o chamado #" +
+        ticket.id +
+        " e toda a conversa? Esta ação não pode ser desfeita.",
+    );
+    if (!confirmado) {
+      return;
+    }
+    setSalvando(true);
+    setErro("");
+    setMensagemSucesso("");
+    try {
+      await request("/tickets/" + ticket.id, {
+        method: "DELETE",
+      });
+      onDelete();
+    } catch (erro) {
+      setErro(erro.message);
+    } finally {
+      setSalvando(false);
+    }
+  }
   return (
-    <>
-      <button className="back" onClick={back}>
-        Voltar aos chamados
+    <section>
+      <button className="text-button" onClick={onBack} disabled={salvando}>
+        ← Todos os chamados
       </button>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">CHAMADO #{String(ticket.id).padStart(4, '0')}</div>
+          <p className="eyebrow">CHAMADO #{ticket.id}</p>
           <h1>{ticket.title}</h1>
         </div>
-        <button className="secondary" onClick={edit}>
-          Editar chamado
-        </button>
-      </div>
-      <div className="detail-grid">
-        <section className="panel conversation">
-          <div className="section-title">
-            <h2>Conversa do chamado</h2>
-            <span className="muted">
-              {total} {total === 1 ? 'mensagem' : 'mensagens'}
-            </span>
-            <button className="icon-button" onClick={() => load()} aria-label="Atualizar conversa">
-              Atualizar
+        {podeEditar && (
+          <div className="actions">
+            <button className="secondary" onClick={onEdit} disabled={salvando}>
+              Editar chamado
+            </button>
+            <button
+              className="danger"
+              onClick={excluirChamado}
+              disabled={salvando}
+            >
+              Excluir
             </button>
           </div>
-          <div className="description">
-            <span className="eyebrow">SOLICITAÇÃO INICIAL</span>
-            <div className="markdown">
-              <Markdown>{ticket.description}</Markdown>
-            </div>
-          </div>
-          {error && <Notice>{error}</Notice>}
-          <div className="messages">
-            {loading && (
-              <p className="muted" role="status">
-                Carregando conversa…
-              </p>
-            )}
-            {!loading && !error && !messages.length && (
-              <div className="empty">
-                <h3>Nenhuma mensagem</h3>
-                <p>Use o campo abaixo para participar da conversa.</p>
-              </div>
-            )}
-            {[...messages]
-              .sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id - b.id)
-              .map((m) => (
-                <article className={`message ${m.id_user === me.id ? 'own' : ''}`} key={m.id}>
-                  <div>
-                    <div className="message-meta">
-                      <strong>
-                        {m.id_user === me.id
-                          ? 'Você'
-                          : users.find((u) => u.id === m.id_user)?.name || `Usuário #${m.id_user}`}
-                      </strong>
-                      <time>{date(m.created_at)}</time>
-                    </div>
-                    <div className="message-body markdown">
-                      <Markdown>{m.text}</Markdown>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            {messages.length < total && (
+        )}
+      </div>
+      <div className="detail-layout">
+        <div>
+          <section className="panel">
+            <h2>Solicitação</h2>
+            <Markdown>{ticket.description}</Markdown>
+          </section>
+          <section className="panel conversation">
+            <div className="section-heading">
+              <h2>Conversa</h2>
               <button
-                className="secondary"
-                disabled={loading}
-                onClick={() => load(messages.length)}
+                className="text-button"
+                disabled={carregando || salvando}
+                onClick={() => setAtualizacao((v) => v + 1)}
               >
-                Carregar mais mensagens
-              </button>
-            )}
-          </div>
-          <form className="composer" onSubmit={send}>
-            <label htmlFor="message">Sua mensagem</label>
-            <textarea
-              id="message"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              rows={3}
-              required
-              placeholder="Escreva uma atualização ou tire uma dúvida…"
-            />
-            <div>
-              <span className="muted">A conversa fica registrada neste chamado.</span>
-              <button className="primary" disabled={sending || !text.trim()}>
-                {sending ? 'Enviando…' : 'Enviar mensagem'}
+                Atualizar
               </button>
             </div>
-          </form>
-        </section>
+            {erro && <Notice>{erro}</Notice>}
+            {mensagemSucesso && <Notice success>{mensagemSucesso}</Notice>}
+            {carregando ? (
+              <p role="status">Carregando conversa…</p>
+            ) : !erro ? (
+              <>
+                {!mensagens.length && !erro && (
+                  <p className="muted">Ainda não há mensagens neste chamado.</p>
+                )}
+                {mensagens.map((item) => (
+                  <article className="message" key={item.id}>
+                    <div className="message-heading">
+                      <strong>
+                        {buscarNomeUsuario(item.id_user)}
+                        {item.id_user === me.id ? " (você)" : ""}
+                      </strong>
+                      <span className="muted">
+                        {date(item.created_at)}
+                        {item.updated_at !== item.created_at && " · editada"}
+                      </span>
+                    </div>
+                    {mensagemEmEdicao === item.id ? (
+                      <form className="stack" onSubmit={salvarMensagem}>
+                        <label>
+                          Editar mensagem
+                          <textarea
+                            autoFocus
+                            required
+                            rows={4}
+                            value={textoEdicao}
+                            onChange={(e) => setTextoEdicao(e.target.value)}
+                          />
+                        </label>
+                        <div className="actions">
+                          <button disabled={salvando || !textoEdicao.trim()}>
+                            Salvar
+                          </button>
+                          <button
+                            type="button"
+                            className="secondary"
+                            disabled={salvando}
+                            onClick={() => setMensagemEmEdicao(null)}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <>
+                        <Markdown>{item.text}</Markdown>
+                        {(me.role === "admin" || me.id === item.id_user) && (
+                          <div className="actions">
+                            <button
+                              className="text-button"
+                              disabled={salvando}
+                              onClick={() => editarMensagem(item)}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              className="text-button danger-text"
+                              disabled={salvando}
+                              onClick={() => excluirMensagem(item.id)}
+                            >
+                              Excluir
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </article>
+                ))}
+              </>
+            ) : null}
+            {total > 20 && (
+              <Pager
+                page={pagina}
+                total={total}
+                size={20}
+                onChange={(value) => {
+                  setMensagemEmEdicao(null);
+                  setPagina(value);
+                }}
+                disabled={carregando || salvando}
+              />
+            )}
+            <form className="reply stack" onSubmit={enviarMensagem}>
+              <label>
+                Sua mensagem
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="Registre uma atualização ou responda ao atendimento"
+                  value={texto}
+                  onChange={(e) => setTexto(e.target.value)}
+                  disabled={salvando}
+                />
+              </label>
+              <div>
+                <button disabled={salvando || !texto.trim()}>
+                  {salvando ? "Aguarde…" : "Enviar mensagem"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
         <aside className="panel ticket-info">
-          <h2>Informações do chamado</h2>
-          <label>Status atual</label>
-          <Badge status={ticket.status} />
-          <hr />
-          <label>Solicitante</label>
-          <strong>{owner?.name || `Usuário #${ticket.id_user}`}</strong>
-          {owner && <small>{owner.email}</small>}
-          <label>Aberto em</label>
-          <span>{date(ticket.date_created)}</span>
-          <label>Última atualização</label>
-          <span>{date(ticket.date_updated)}</span>
+          <h2>Informações</h2>
+          <dl>
+            <dt>Status</dt>
+            <dd>
+              <Badge status={ticket.status} />
+            </dd>
+            <dt>Solicitante</dt>
+            <dd>{buscarNomeUsuario(ticket.id_user)}</dd>
+            <dt>Aberto em</dt>
+            <dd>{date(ticket.date_created)}</dd>
+            <dt>Atualizado em</dt>
+            <dd>{date(ticket.date_updated)}</dd>
+          </dl>
         </aside>
       </div>
-    </>
+    </section>
   );
 }
