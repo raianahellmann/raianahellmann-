@@ -1,4 +1,4 @@
-# Pontosat — Sistema de chamados
+# Sistema de chamados
 
 Frontend feito com React, JavaScript e CSS e integrado à API fornecida.
 
